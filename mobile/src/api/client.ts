@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { useAuthStore } from '../store/authStore';
 
-const BASE_URL = process.env.EXPO_PUBLIC_BACKEND_URL || process.env.BACKEND_DEPLOYED_URL || 'http://localhost:5001';
+const BASE_URL = process.env.EXPO_PUBLIC_BACKEND_URL || process.env.BACKEND_DEPLOYED_URL || 'https://attendance-tracking-rtv4.onrender.com';
 
 export const apiClient = axios.create({
   baseURL: BASE_URL,
