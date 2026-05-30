@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, Alert, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, Alert, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { useAuthStore } from '../../store/authStore';
 import apiClient from '../../api/client';
 import { COLORS, GLASS_STYLES } from '../../components/Theme';
@@ -32,7 +32,11 @@ export const RegisterScreen = ({ navigation }: any) => {
 
   return (
     <ScrollView contentContainerStyle={styles.scroll}>
-      <View style={styles.container}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+      >
+        <View style={styles.container}>
         <View style={styles.headerBlock}>
           <Text style={styles.logo}>✦</Text>
           <Text style={styles.title}>Create Account</Text>
@@ -109,6 +113,7 @@ export const RegisterScreen = ({ navigation }: any) => {
           </TouchableOpacity>
         </View>
       </View>
+      </KeyboardAvoidingView>
     </ScrollView>
   );
 };

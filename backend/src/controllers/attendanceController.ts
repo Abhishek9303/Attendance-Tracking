@@ -174,3 +174,136 @@ export const getHistoryStats = async (req: Request, res: Response, next: NextFun
     next(error);
   }
 };
+
+// Helper for detailed history calculations
+const getWorkingDaysInMonth = (year: number, month: number): number => {
+  const startDate = new Date(year, month - 1, 1);
+  const endDate = new Date(year, month, 0);
+  let count = 0;
+  const curDate = new Date(startDate);
+  while (curDate <= endDate) {
+    const dayOfWeek = curDate.getDay();
+    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+      count++;
+    }
+    curDate.setDate(curDate.getDate() + 1);
+  }
+  return count;
+};
+
+const timeToMinutes = (timeStr: string): number => {
+  const parts = timeStr.split(':');
+  if (parts.length < 2) return 0;
+  return parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+};
+
+const minutesToFormattedTime = (totalMinutes: number): string => {
+  if (isNaN(totalMinutes) || totalMinutes === 0) return '--:--';
+  const hours24 = Math.floor(totalMinutes / 60);
+  const minutes = Math.round(totalMinutes % 60);
+  const ampm = hours24 >= 12 ? 'PM' : 'AM';
+  const hours12 = hours24 % 12 === 0 ? 12 : hours24 % 12;
+  return `${hours12}:${String(minutes).padStart(2, '0')} ${ampm}`;
+};
+
+export const getMyDetailedHistory = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const month = parseInt(req.query.month as string, 10) || new Date().getMonth() + 1;
+    const year = parseInt(req.query.year as string, 10) || new Date().getFullYear();
+
+    const employee = await User.findById(userId).select('-password');
+    if (!employee) {
+      return res.status(404).json({ message: 'Employee not found' });
+    }
+
+    const formattedMonth = String(month).padStart(2, '0');
+    const monthRegex = new RegExp(`^${year}-${formattedMonth}-`);
+    const records = await Attendance.find({
+      userId,
+      date: monthRegex,
+    }).sort({ date: 1 });
+
+    const workingDays = getWorkingDaysInMonth(year, month);
+    const approvedAndPending = records.filter(r => r.status === 'APPROVED' || r.status === 'PENDING');
+
+    const leaveCount = approvedAndPending.filter(r => r.selfieUrl === 'LEAVE').length;
+    const presentCount = approvedAndPending.filter(r => r.selfieUrl !== 'LEAVE').length;
+    const lateCount = approvedAndPending.filter(r => r.isLate && r.selfieUrl !== 'LEAVE').length;
+    const absentCount = Math.max(0, workingDays - (presentCount + leaveCount));
+
+    // Calculate Average Clock In Time
+    let totalClockInMinutes = 0;
+    let clockInCount = 0;
+    approvedAndPending.forEach(r => {
+      if (r.selfieUrl !== 'LEAVE' && r.checkInTime) {
+        totalClockInMinutes += timeToMinutes(r.checkInTime);
+        clockInCount++;
+      }
+    });
+    const avgClockInMinutes = clockInCount > 0 ? totalClockInMinutes / clockInCount : 0;
+    const averageCheckInTime = minutesToFormattedTime(avgClockInMinutes);
+
+    const attendancePercentage = workingDays > 0 ? Math.round((presentCount / workingDays) * 100) : 0;
+
+    // Timeline format matching admin details exactly
+    const attendanceLogs = records.map(r => {
+      const isLeave = r.selfieUrl === 'LEAVE';
+      let status = 'ON_TIME';
+      let color = 'green';
+      if (isLeave) {
+        status = 'LEAVE';
+        color = 'red';
+      } else if (r.status === 'REJECTED') {
+        status = 'REJECTED';
+        color = 'gray';
+      } else if (r.isLate) {
+        status = 'LATE';
+        color = 'yellow';
+      } else if (r.status === 'PENDING') {
+        status = 'PENDING';
+        color = 'blue';
+      }
+
+      const dateObj = new Date(r.date);
+      const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][dateObj.getDay()];
+
+      return {
+        _id: r._id,
+        date: r.date,
+        day: dayName,
+        clockInTime: isLeave ? 'LEAVE' : minutesToFormattedTime(timeToMinutes(r.checkInTime)),
+        status,
+        color,
+        latitude: r.latitude,
+        longitude: r.longitude,
+        selfieUrl: r.selfieUrl,
+        remarks: r.rejectionReason || (isLeave ? 'Approved Leave' : 'N/A'),
+        approvalStatus: r.status,
+      };
+    });
+
+    return res.status(200).json({
+      employeeId: userId,
+      employee,
+      month,
+      year,
+      summary: {
+        presentDays: presentCount,
+        lateDays: lateCount,
+        leaveDays: leaveCount,
+        absentDays: absentCount,
+        attendancePercentage: Math.min(attendancePercentage, 100),
+        workingDays,
+        averageCheckInTime,
+      },
+      attendance: attendanceLogs,
+    });
+  } catch (error) {
+    next(error);
+  }
+};

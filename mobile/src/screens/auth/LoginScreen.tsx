@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, Alert, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, Alert, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { useAuthStore } from '../../store/authStore';
 import apiClient from '../../api/client';
 import { COLORS, GLASS_STYLES } from '../../components/Theme';
@@ -28,7 +28,10 @@ export const LoginScreen = ({ navigation }: any) => {
   };
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.container}
+    >
       <View style={styles.headerBlock}>
         <Text style={styles.logo}>✦</Text>
         <Text style={styles.title}>Welcome back</Text>
@@ -69,7 +72,7 @@ export const LoginScreen = ({ navigation }: any) => {
           <Text style={styles.registerLink}>Register here</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 };
 

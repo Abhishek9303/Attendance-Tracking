@@ -5,8 +5,8 @@ import env from '../config/env';
 
 const generateTokens = (user: { id: string; email: string; role: string }) => {
   const payload = { id: user.id, email: user.email, role: user.role };
-  const accessToken = jwt.sign(payload, env.JWT_SECRET, { expiresIn: '1d' });
-  const refreshToken = jwt.sign(payload, env.JWT_REFRESH_SECRET, { expiresIn: '7d' });
+  const accessToken = jwt.sign(payload, env.JWT_SECRET, { expiresIn: '30d' });
+  const refreshToken = jwt.sign(payload, env.JWT_REFRESH_SECRET, { expiresIn: '30d' });
   return { accessToken, refreshToken };
 };
 
