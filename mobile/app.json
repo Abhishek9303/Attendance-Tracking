@@ -20,10 +20,16 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#0d0d11"
-      }
+      },
+      "package": "com.anonymous.attendancepro"
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "1ac06c7c-b109-4e44-85a8-3124db633160"
+      }
     }
   }
 }
