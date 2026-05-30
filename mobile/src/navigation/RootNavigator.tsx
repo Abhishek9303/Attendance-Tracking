@@ -11,6 +11,7 @@ import HistoryScreen from '../screens/user/HistoryScreen';
 import AdminDashboard from '../screens/admin/AdminDashboard';
 import RequestsScreen from '../screens/admin/RequestsScreen';
 import EmployeeRecordsScreen from '../screens/admin/EmployeeRecordsScreen';
+import EmployeeAttendanceDetailsScreen from '../screens/admin/EmployeeAttendanceDetailsScreen';
 
 const Stack = createStackNavigator();
 
@@ -36,6 +37,7 @@ export const RootNavigator = () => {
           <Stack.Screen name="AdminDashboard" component={AdminDashboard} />
           <Stack.Screen name="Requests" component={RequestsScreen} />
           <Stack.Screen name="Employees" component={EmployeeRecordsScreen} />
+          <Stack.Screen name="EmployeeAttendanceDetails" component={EmployeeAttendanceDetailsScreen} />
         </>
       ) : (
         // User (Employee) Flow

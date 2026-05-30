@@ -1,15 +1,25 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, TextInput } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  ActivityIndicator,
+  TextInput,
+  RefreshControl,
+} from 'react-native';
 import apiClient from '../../api/client';
 import { COLORS, GLASS_STYLES } from '../../components/Theme';
 
 export const EmployeeRecordsScreen = ({ navigation }: any) => {
   const [employees, setEmployees] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
 
-  const fetchEmployees = async () => {
-    setLoading(true);
+  const fetchEmployees = async (showLoader = true) => {
+    if (showLoader) setLoading(true);
     try {
       const res = await apiClient.get('/api/admin/employees', {
         params: { search: search || undefined },
@@ -19,46 +29,89 @@ export const EmployeeRecordsScreen = ({ navigation }: any) => {
       console.error('Error loading employee catalog:', err);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
   useEffect(() => {
-    fetchEmployees();
+    // Simple search debounce
+    const delayDebounce = setTimeout(() => {
+      fetchEmployees(true);
+    }, 300);
+
+    return () => clearTimeout(delayDebounce);
   }, [search]);
 
-  const renderItem = ({ item }: { item: any }) => (
-    <View style={[GLASS_STYLES.card, styles.empCard]}>
-      <View style={styles.cardHeader}>
-        <View>
-          <Text style={styles.empName}>{item.employee.name}</Text>
-          <Text style={styles.empPhone}>📞 {item.employee.phone}</Text>
-        </View>
-        <View style={styles.statContainer}>
-          <Text style={styles.rateLabel}>Presence</Text>
-          <Text style={[styles.rateVal, item.attendanceRate > 75 ? { color: COLORS.success } : { color: COLORS.warning }]}>
-            {item.attendanceRate}%
-          </Text>
-        </View>
-      </View>
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchEmployees(false);
+  }, [search]);
 
-      <View style={styles.divider} />
+  const getAvatarInitials = (name: string) => {
+    if (!name) return 'EE';
+    const parts = name.split(' ');
+    if (parts.length >= 2) {
+      return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+  };
 
-      <View style={styles.metricsRow}>
-        <View style={styles.metricItem}>
-          <Text style={styles.metricLabel}>Total Submitted</Text>
-          <Text style={styles.metricVal}>{item.stats.total}</Text>
+  const renderItem = ({ item }: { item: any }) => {
+    const rate = item.attendanceRate || 0;
+    const rateColor = rate >= 90 
+      ? COLORS.success 
+      : rate >= 75 
+        ? COLORS.warning 
+        : COLORS.danger;
+
+    return (
+      <TouchableOpacity
+        style={[GLASS_STYLES.card, styles.empCard]}
+        onPress={() => navigation.navigate('EmployeeAttendanceDetails', { employeeId: item.employee._id })}
+        activeOpacity={0.8}
+      >
+        <View style={styles.cardHeader}>
+          {/* Avatar Vibe */}
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>{getAvatarInitials(item.employee.name)}</Text>
+          </View>
+
+          <View style={styles.detailsContainer}>
+            <Text style={styles.empName}>{item.employee.name}</Text>
+            <Text style={styles.empEmail}>✉️ {item.employee.email}</Text>
+            <Text style={styles.empPhone}>📞 {item.employee.phone}</Text>
+          </View>
+
+          <View style={styles.rateWrapper}>
+            <Text style={styles.rateLabel}>Attendance</Text>
+            <Text style={[styles.rateVal, { color: rateColor }]}>{rate}%</Text>
+          </View>
         </View>
-        <View style={styles.metricItem}>
-          <Text style={styles.metricLabel}>Approved</Text>
-          <Text style={styles.metricVal}>{item.stats.approved}</Text>
+
+        <View style={styles.divider} />
+
+        {/* Quick Month Metrics Grid */}
+        <View style={styles.metricsRow}>
+          <View style={styles.metricItem}>
+            <Text style={[styles.metricLabel, { color: COLORS.success }]}>Present</Text>
+            <Text style={styles.metricVal}>{item.stats.present}</Text>
+          </View>
+          <View style={styles.metricItem}>
+            <Text style={[styles.metricLabel, { color: COLORS.warning }]}>Late</Text>
+            <Text style={styles.metricVal}>{item.stats.late}</Text>
+          </View>
+          <View style={styles.metricItem}>
+            <Text style={[styles.metricLabel, { color: COLORS.danger }]}>Leave</Text>
+            <Text style={styles.metricVal}>{item.stats.leave}</Text>
+          </View>
+          <View style={styles.metricItem}>
+            <Text style={[styles.metricLabel, { color: COLORS.textSecondary }]}>Working</Text>
+            <Text style={styles.metricVal}>{item.stats.workingDays}</Text>
+          </View>
         </View>
-        <View style={styles.metricItem}>
-          <Text style={styles.metricLabel}>Pending</Text>
-          <Text style={styles.metricVal}>{item.stats.pending}</Text>
-        </View>
-      </View>
-    </View>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -66,14 +119,14 @@ export const EmployeeRecordsScreen = ({ navigation }: any) => {
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <Text style={styles.backText}>← Back</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Employee Catalog</Text>
+        <Text style={styles.title}>Employee Tracking</Text>
       </View>
 
-      {/* Modern Search bar */}
+      {/* Premium Search input */}
       <View style={styles.searchContainer}>
         <TextInput
           style={[GLASS_STYLES.input, styles.searchInput]}
-          placeholder="Search staff members by name..."
+          placeholder="Search employees by name..."
           placeholderTextColor="#666"
           value={search}
           onChangeText={setSearch}
@@ -90,9 +143,12 @@ export const EmployeeRecordsScreen = ({ navigation }: any) => {
           keyExtractor={(item) => item.employee._id}
           renderItem={renderItem}
           contentContainerStyle={styles.listContent}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.accent} />
+          }
           ListEmptyComponent={
             <View style={styles.emptyView}>
-              <Text style={styles.emptyText}>No employees found matching criteria</Text>
+              <Text style={styles.emptyText}>No employees found</Text>
             </View>
           }
         />
@@ -148,24 +204,47 @@ const styles = StyleSheet.create({
   },
   cardHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(90, 97, 246, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(90, 97, 246, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  avatarText: {
+    color: COLORS.accent,
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  detailsContainer: {
+    flex: 1,
+    gap: 2,
   },
   empName: {
     fontSize: 16,
     fontWeight: 'bold',
     color: COLORS.textPrimary,
-    marginBottom: 4,
+    marginBottom: 2,
   },
-  empPhone: {
-    fontSize: 12,
+  empEmail: {
+    fontSize: 11,
     color: COLORS.textSecondary,
   },
-  statContainer: {
+  empPhone: {
+    fontSize: 11,
+    color: COLORS.textSecondary,
+  },
+  rateWrapper: {
     alignItems: 'flex-end',
   },
   rateLabel: {
-    fontSize: 10,
+    fontSize: 9,
     color: COLORS.textSecondary,
     marginBottom: 2,
     textTransform: 'uppercase',
@@ -182,14 +261,17 @@ const styles = StyleSheet.create({
   metricsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    paddingHorizontal: 4,
   },
   metricItem: {
     alignItems: 'center',
+    flex: 1,
   },
   metricLabel: {
     fontSize: 10,
-    color: COLORS.textSecondary,
+    fontWeight: 'bold',
     marginBottom: 4,
+    textTransform: 'uppercase',
   },
   metricVal: {
     fontSize: 14,
