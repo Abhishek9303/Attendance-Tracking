@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: attendance-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: attendance-backend-api
+    ports:
+      - "5001:5001"
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017/attendance-db
+      - PORT=5001
+      - JWT_SECRET=super-secret-jwt-key-9988
+      - JWT_REFRESH_SECRET=super-secret-refresh-key-1122
+      - OFFICE_START_TIME=09:00
+      - ALLOWED_GPS_RADIUS_METERS=200
+      - OFFICE_LATITUDE=23.2599
+      - OFFICE_LONGITUDE=77.4126
+    depends_on:
+      - mongodb
+
+volumes:
+  mongo-data:
