@@ -4,8 +4,12 @@ import {
   approveAttendance,
   rejectAttendance,
   getAdminDashboard,
-  getEmployeeList,
 } from '../controllers/adminController';
+import {
+  getEmployeeListWithStats,
+  getEmployeeAttendanceDetails,
+  getMonthlyCompanySummary,
+} from '../controllers/adminAttendanceController';
 import { authenticateJWT, requireRole } from '../middlewares/auth';
 
 const router = Router();
@@ -17,6 +21,10 @@ router.get('/attendance/pending', getPendingRequests);
 router.patch('/attendance/:id/approve', approveAttendance);
 router.patch('/attendance/:id/reject', rejectAttendance);
 router.get('/dashboard', getAdminDashboard);
-router.get('/employees', getEmployeeList);
+
+// Enterprise-Grade Individual Attendance Tracking
+router.get('/employees', getEmployeeListWithStats);
+router.get('/attendance/:employeeId', getEmployeeAttendanceDetails);
+router.get('/attendance-summary', getMonthlyCompanySummary);
 
 export default router;
