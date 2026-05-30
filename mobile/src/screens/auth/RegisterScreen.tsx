@@ -89,12 +89,12 @@ export const RegisterScreen = ({ navigation }: any) => {
             >
               <Text style={[styles.roleBtnText, role === 'USER' && styles.roleBtnTextActive]}>Employee</Text>
             </TouchableOpacity>
-            <TouchableOpacity
+            {/* <TouchableOpacity
               style={[styles.roleBtn, role === 'ADMIN' && styles.roleBtnActive]}
               onPress={() => setRole('ADMIN')}
             >
               <Text style={[styles.roleBtnText, role === 'ADMIN' && styles.roleBtnTextActive]}>Administrator</Text>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
           </View>
 
           <TouchableOpacity style={GLASS_STYLES.button} onPress={handleRegister} disabled={loading}>

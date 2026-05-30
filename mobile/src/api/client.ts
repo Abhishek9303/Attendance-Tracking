@@ -1,9 +1,7 @@
 import axios from 'axios';
 import { useAuthStore } from '../store/authStore';
 
-// For local testing in React Native Android/iOS Emulators, we map standard localhost,
-// but let's provide a fallback URL that points to localhost (10.0.2.2 is Android VM gateway to host loopback).
-const BASE_URL = 'http://localhost:5001';
+const BASE_URL = process.env.EXPO_PUBLIC_BACKEND_URL || process.env.BACKEND_DEPLOYED_URL || 'http://localhost:5001';
 
 export const apiClient = axios.create({
   baseURL: BASE_URL,
